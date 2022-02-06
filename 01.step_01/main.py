@@ -1,19 +1,14 @@
-"""
-Python 3.9 стартовая программа на Python по изучению обучения с подкреплением - Reinforcement Learning
-Название файла 00. start.py
+from kaggle_environments import make
 
-Version: 0.1
-Author: Andrej Marinchenko
-Date: 2022-02-06
+# Setup a tictactoe environment.
+env = make("tictactoe")
 
-воспользуемся одной из тестовых игр OpenAI, в частности, со средой «MountainCar-v0»
-"""
-from kaggle_environments import make, evaluate
+# Basic agent which marks the first available cell.
+def my_agent(obs):
+  return [c for c in range(len(obs.board)) if obs.board[c] == 0][0]
 
-# Создать игровую среду
-# Установите debug = True, чтобы увидеть ошибки, если ваш агент отказывается запускаться
-# env = make("connectx", debug=True)
-env = make("connectx", debug=False)
+# Run the basic agent against a default agent which chooses a "random" move.
+env.run([my_agent, "random"])
 
-# Список доступных агентов по умолчанию
-print(list(env.agents))
+# Render an html ipython replay of the tictactoe game.
+env.render(mode="ipython")
