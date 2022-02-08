@@ -55,5 +55,13 @@ reset_state = env.reset(num_agents)
 print(list(env.agents))  # Список доступных агентов по умолчанию 'random', 'negamax'
 
 env = make("connectx")
-env.run(["random", "random"])  # This line of code starts the game
-env.render(mode="ipython")  # # this line of code shows the game in our laptop, from this we can conclude that the game will take place even if this line of code does not exist
+env.run(["random", "random"])  # это строка создает игру с двумя случайными агентами
+# env.run(["negamax", "negamax"])
+# env.play(["random", "random"])
+
+# env.render(mode="ipython")
+# out = env.render(mode="html")
+out = env.render(mode="ansi")
+# out = env.render(mode="json")
+# out = env.render(mode="human")  # ????
+print(out)
