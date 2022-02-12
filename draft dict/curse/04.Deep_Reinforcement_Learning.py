@@ -89,9 +89,9 @@ import tensorflow as tf
 from kaggle_environments import make, evaluate
 from gym import spaces
 
-!apt-get update
-!apt-get install -y cmake libopenmpi-dev python3-dev zlib1g-dev
-!pip install "stable-baselines[mpi]==2.9.0"
+# !apt-get update
+# !apt-get install -y cmake libopenmpi-dev python3-dev zlib1g-dev
+# !pip install "stable-baselines[mpi]==2.9.0"
 
 from stable_baselines.bench import Monitor
 from stable_baselines.common.vec_env import DummyVecEnv
