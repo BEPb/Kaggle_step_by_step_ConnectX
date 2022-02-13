@@ -173,6 +173,7 @@ def count_windows_optimised(grid, piece, config, row, col):
     return num_windows
 
 
+
 # How deep to make the game tree: higher values take longer to run!
 N_STEPS = 3
 
