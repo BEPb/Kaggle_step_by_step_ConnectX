@@ -1,110 +1,189 @@
-import random
-import numpy as np
+# fast_Nstep_lookahead_agent
+# Importing Dependencies
+import random  # connect the library for working with random numbers
+import numpy as np  # connect the library general mathematical and numerical operations
+
+'''
+Helper Functions:
+
+- score_move: calculates score if agent drops piece in selected column
+- drop_piece: return grid status after player drops a piece
+- get_heuristic: calculates value of heuristic for grid
+- check_window: checks if window satisfies heuristic conditions
+- count_windows: counts number of windows satisfying specified heuristic conditions
+- score_move: Uses minimax to calculate value of dropping piece in selected column
+- minimax: Minimax implementation
+- is_terminal_window: checks if agent or opponent has four in a row in the window
+- is_terminal_node: checks if game has ended
+'''
 
 
-########################################################
-def boardToPatterns(grid, config):
-    pats = boardDiagonals(grid, config)
-    pats.extend(boardHorizontals(grid, config))
-    pats.extend(boardHorizontals(grid.T, config))
-    pats = list(filter(lambda x: x.count(0) <= 2, pats))
-    return pats
-
-
-def boardDiagonals(grid, config):
-    diags = []
-    for col in range(config.columns - (config.inarow - 1)):
-        for row in range(config.rows - (config.inarow - 1)):
-            w = []
-            for i in range(config.inarow):
-                w.append(grid[row+i][col+i])
-            diags.append(w)
-            for row in range(config.inarow - 1, config.rows):
-                w = []
-                for i in range(config.inarow):
-                    w.append(grid[row-i][col+i])
-            diags.append(w)
-    return diags
-
-
-def boardHorizontals(grid, config):
-    pats = []
-    for row in range(grid.shape[0]):
-        for col in range(grid.shape[1] - (config.inarow - 1)):
-            pats.append(list(grid[row, col:col + config.inarow]))
-    return pats
-
-def score_move(grid, col, mark, config, nsteps):
-    next_grid = drop_piece(grid, col, mark, config)
-    score = minimax(next_grid, nsteps-1, False, mark, config, -np.Inf, np.Inf, boardToPatterns(next_grid, config))
+# Calculates score if agent drops piece in selected column
+def score_move_a(grid, col, mark, config, start_score, n_steps):
+    next_grid, pos = drop_piece(grid, col, mark, config)
+    row, col = pos
+    score = get_heuristic_optimised(grid, next_grid, mark, config, row, col, start_score)
+    valid_moves = [col for col in range(config.columns) if next_grid[0][col] == 0]
+    # Since we have just dropped our piece there is only the possibility of us getting 4 in a row and not the opponent.
+    # Thus score can only be +infinity.
+    scores = []
+    if len(valid_moves) == 0 or n_steps == 0 or score == float("inf"):
+        return score
+    else:
+        for col in valid_moves:
+            current = score_move_b(next_grid, col, mark, config, score, n_steps - 1)
+            scores.append(current)
+        score = min(scores)
     return score
+
+
+def score_move_b(grid, col, mark, config, start_score, n_steps):
+    next_grid, pos = drop_piece(grid, col, (mark % 2) + 1, config)
+    row, col = pos
+    score = get_heuristic_optimised(grid, next_grid, mark, config, row, col, start_score)
+    valid_moves = [col for col in range(config.columns) if next_grid[0][col] == 0]
+
+    # The converse is true here.
+    # Since we have just dropped opponent piece there is only the possibility of opponent getting 4 in a row and not us.
+    # Thus score can only be -infinity.
+    scores = []
+    if len(valid_moves) == 0 or n_steps == 0 or score == float("-inf"):
+        return score
+    else:
+        for col in valid_moves:
+            current = score_move_a(next_grid, col, mark, config, score, n_steps - 1)
+            scores.append(current)
+        score = max(scores)
+    return score
+
 
 def drop_piece(grid, col, mark, config):
     next_grid = grid.copy()
-    for row in range(config.rows-1, -1, -1):
+    for row in range(config.rows - 1, -1, -1):
         if next_grid[row][col] == 0:
             break
     next_grid[row][col] = mark
-    return next_grid
+    return next_grid, (row, col)
 
-def get_heuristic(grid, mark, config, patterns):
-    weights = [1, 1e2, 1e6]
-    weights_opp = [1.1, 1.1e2, 1e6]
+
+def get_heuristic(grid, mark, config):
     score = 0
-    for n in range(3):
-        score += count_windows_in_pattern(patterns, n + 2, mark) * weights[n]
-        score -= count_windows_in_pattern(patterns, n + 2, (mark % 2) + 1) * weights_opp[n]
+    num = count_windows(grid, mark, config)
+    for i in range(config.inarow):
+        # num  = count_windows (grid,i+1,mark,config)
+        if (i == (config.inarow - 1) and num[i + 1] >= 1):
+            return float("inf")
+        score += (4 ** (i)) * num[i + 1]
+    num_opp = count_windows(grid, mark % 2 + 1, config)
+    for i in range(config.inarow):
+        if (i == (config.inarow - 1) and num_opp[i + 1] >= 1):
+            return float("-inf")
+        score -= (2 ** ((2 * i) + 1)) * num_opp[i + 1]
     return score
 
-def count_windows_in_pattern(patterns, num, piece):
-    return sum([window.count(piece) == num and window.count(0) == (config.inarow - num) for window in patterns])
 
-def is_terminal_node(grid, config, patterns):
-    #draw
-    if list(grid[0, :]).count(0) == 0:
-        return True
-    #win
-    return count_windows_in_pattern(patterns, config.inarow, 1) > 0 or count_windows_in_pattern(patterns, config.inarow, 2) > 0
+def get_heuristic_optimised(grid, next_grid, mark, config, row, col, start_score):
+    score = 0
+    num1 = count_windows_optimised(grid, mark, config, row, col)
+    num2 = count_windows_optimised(next_grid, mark, config, row, col)
+    for i in range(config.inarow):
+        if (i == (config.inarow - 1) and (num2[i + 1] - num1[i + 1]) >= 1):
+            return float("inf")
+        score += (4 ** (i)) * (num2[i + 1] - num1[i + 1])
+    num1_opp = count_windows_optimised(grid, mark % 2 + 1, config, row, col)
+    num2_opp = count_windows_optimised(next_grid, mark % 2 + 1, config, row, col)
+    for i in range(config.inarow):
+        if (i == (config.inarow - 1) and num2_opp[i + 1] - num1_opp[i + 1] >= 1):
+            return float("-inf")
+        score -= (2 ** ((2 * i) + 1)) * (num2_opp[i + 1] - num1_opp[i + 1])
+    score += start_score
+    return score
 
 
-########################################################
-
-# Minimax, ab pruning
-def minimax(node, depth, maximizingPlayer, mark, config, A, B, patterns):
-    if depth == 0 or is_terminal_node(node, config, patterns):
-        return get_heuristic(node, mark, config, patterns)
-
-    valid_moves = [c for c in range(config.columns) if node[0][c] == 0]
-
-    if maximizingPlayer:
-        value = -np.Inf
-        for col in valid_moves:
-            child = drop_piece(node, col, mark, config)
-            value = max(value, minimax(child, depth-1, False, mark, config, A, B, boardToPatterns(child, config)))
-            if value >= B:
-                break
-            A = max(A, value)
-        return value
+def check_window(window, piece, config):
+    if window.count((piece % 2) + 1) == 0:
+        return window.count(piece)
     else:
-        value = np.Inf
-        for col in valid_moves:
-            child = drop_piece(node, col, mark%2+1, config)
-            value = min(value, minimax(child, depth-1, True, mark, config, A, B, boardToPatterns(child, config)))
-            if value <= A:
-                break
-            B = min(B, value)
-        return value
-
-def innermost(arr):
-    mid = (config.columns - 1) / 2
-    distance = [-abs(c-mid) for c in arr]
-    return arr[np.argmax(distance)]
+        return -1
 
 
-def N_step_lookahead_fast(obs, config):
-    order = [config.columns//2 - i//2 - 1 if i%2 else config.columns//2 + i//2 for i in range(config.columns)]
-    valid_moves = [c for c in order if obs.board[c] == 0]
+def count_windows(grid, piece, config):
+    num_windows = np.zeros(config.inarow + 1)
+    # horizontal
+    for row in range(config.rows):
+        for col in range(config.columns - (config.inarow - 1)):
+            window = list(grid[row, col:col + config.inarow])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    # vertical
+    for row in range(config.rows - (config.inarow - 1)):
+        for col in range(config.columns):
+            window = list(grid[row:row + config.inarow, col])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    # positive diagonal
+    for row in range(config.rows - (config.inarow - 1)):
+        for col in range(config.columns - (config.inarow - 1)):
+            window = list(grid[range(row, row + config.inarow), range(col, col + config.inarow)])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    # negative diagonal
+    for row in range(config.inarow - 1, config.rows):
+        for col in range(config.columns - (config.inarow - 1)):
+            window = list(grid[range(row, row - config.inarow, -1), range(col, col + config.inarow)])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    return num_windows
+
+
+def count_windows_optimised(grid, piece, config, row, col):
+    num_windows = np.zeros(config.inarow + 1)
+    # horizontal
+    for acol in range(max(0, col - (config.inarow - 1)), min(col + 1, (config.columns - (config.inarow - 1)))):
+        window = list(grid[row, acol:acol + config.inarow])
+        type_window = check_window(window, piece, config)
+        if type_window != -1:
+            num_windows[type_window] += 1
+    # vertical
+    for arow in range(max(0, row - (config.inarow - 1)), min(row + 1, (config.rows - (config.inarow - 1)))):
+        window = list(grid[arow:arow + config.inarow, col])
+        type_window = check_window(window, piece, config)
+        if type_window != -1:
+            num_windows[type_window] += 1
+    # positive diagonal
+    for arow, acol in zip(range(row - (config.inarow - 1), row + 1), range(col - (config.inarow - 1), col + 1)):
+        if (arow >= 0 and acol >= 0 and arow <= (config.rows - config.inarow) and acol <= (
+                config.columns - config.inarow)):
+            window = list(grid[range(arow, arow + config.inarow), range(acol, acol + config.inarow)])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    # negative diagonal
+    for arow, acol in zip(range(row, row + config.inarow), range(col, col - config.inarow, -1)):
+        if (arow >= (config.inarow - 1) and acol >= 0 and arow <= (config.rows - 1) and acol <= (
+                config.columns - config.inarow)):
+            window = list(grid[range(arow, arow - config.inarow, -1), range(acol, acol + config.inarow)])
+            type_window = check_window(window, piece, config)
+            if type_window != -1:
+                num_windows[type_window] += 1
+    return num_windows
+
+
+# How deep to make the game tree: higher values take longer to run!
+N_STEPS = 3
+
+
+def agent(obs, config):
     grid = np.asarray(obs.board).reshape(config.rows, config.columns)
-    scores = dict(zip(valid_moves, [score_move(grid, col, obs.mark, config, N_STEPS) for col in valid_moves]))
+    valid_moves = [c for c in range(config.columns) if grid[0][c] == 0]
+    scores = {}
+    start_score = get_heuristic(grid, obs.mark, config)
+    for col in valid_moves:
+        scores[col] = score_move_a(grid, col, obs.mark, config, start_score, N_STEPS)
+    print(N_STEPS, "-step lookahead agent:", scores)
     max_cols = [key for key in scores.keys() if scores[key] == max(scores.values())]
-    return innermost(max_cols)
+    return random.choice(max_cols)
