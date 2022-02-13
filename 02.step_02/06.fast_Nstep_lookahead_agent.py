@@ -59,7 +59,7 @@ def drop_piece(grid, col, mark, config):  #
         if next_grid[row][col] == 0:  # we are not interested in empty cells
             break  # we skip them if we meet such
     next_grid[row][col] = mark # mark the cell in which our chip will fall
-    return return next_grid,(row,col) # return board at next step
+    return next_grid,(row,col) # return board at next step
 
 # calculates value of heuristic for grid
 def get_heuristic(grid, mark, config):
