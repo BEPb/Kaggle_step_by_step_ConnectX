@@ -17,11 +17,13 @@ from IPython.display import HTML
 
 if torch.cuda.is_available():
     torch.cuda.current_device()
+    print('cuda it works')
+else:
+    print('do not work cuda')
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-map_location = torch.device('cpu')
+# map_location = torch.device('cpu')
 print("running calculations on: ", device)
-
-
 
 
 # Create ConnectX Environment
@@ -82,14 +84,19 @@ def form_net_input(observation, configuration):
     Reshape board and one-hot it.
     """
     print(observation)
+    # print(configuration)
+
     # The current serialized Board (rows x columns).
     board = observation.board
+
     # Which player the agent is playing as (1 or 2).
     mark = observation.mark
     columns = configuration.columns
     rows = configuration.rows
+
     opponent = 2 if mark == 1 else 1
     newboard = [1 if i == mark else 2 if i == opponent else 0 for i in board]
+
     #         x = torch.Tensor(newboard).view([1,1, rows, columns])
     newboard = torch.tensor(newboard).reshape([rows, columns])
     x = F.one_hot(newboard, 3).permute([2, 0, 1])
@@ -383,237 +390,247 @@ out_mem_file = open("replay_memory.pkl", 'wb')
 pickle.dump(memory, out_mem_file)
 out_mem_file.close()
 
+
+
+
+
+
+
+
+
+
+
+
 #
 # # Plots
-# # plots
-# fig = plt.figure(figsize=(16,8))
-# ax = fig.add_subplot(121)
-# ax.plot(eps_list)
-# ax.grid()
-# ax.set_xlabel("episode")
-# ax.set_ylabel("eps")
-# ax.set_title("eps decay")
-#
-#
-# ax2 = fig.add_subplot(122)
-# ax2.plot(training_loss_per_episode)
-# ax2.grid()
-# ax2.set_xlabel("training episode")
-# ax2.set_ylabel("loss")
-# ax2.set_title("loss")
-#
-# first_move_qs_arr = np.array(first_move_qs_arr)
-#
-# fig2 = plt.figure(figsize=(16,8))
-# ax3 = fig2.add_subplot(121)
-# ax3.plot(first_move_qs_arr[:,mid_action])
-# ax3.grid()
-# ax3.axhline(color='red')
-# ax3.set_xlabel("training episode")
-# ax3.set_ylabel("q-value")
-# ax3.set_title("Q-value of middle action on first move")
-#
-# ax4 = fig2.add_subplot(122)
-# ax4.plot(first_move_qs_arr[:,mid_action] - np.concatenate([first_move_qs_arr[:, :mid_action], first_move_qs_arr[:, mid_action+1:]], axis=1).max(axis=1))
-# ax4.grid()
-# ax4.axhline(color='red')
-# ax4.set_xlabel("training episode")
-# ax4.set_ylabel("q-value difference")
-# ax4.set_title("First move Q-value difference between mid action and max non-mid action ")
-#
-#
-# bar_fig, ax5 = plt.subplots(figsize = (10,8))
-#
-#
-# def update_qs_barplot(i):
-#     title = "Q-values of first move after {} training sessions".format(i)
-#     ax5.clear()
-#     ax5.bar(np.arange(columns), first_move_qs_arr[i])
-#     ax5.set_ylim(-0.5, 0.8)
-#     ax5.grid()
-#     ax5.axhline(color='red')
-#     ax5.set_xlabel("action")
-#     ax5.set_ylabel("Q-value")
-#     ax5.set_title(title)
-#
-# anim = FuncAnimation(bar_fig, update_qs_barplot, frames=np.linspace(0, len(first_move_qs_arr)-1, 100, dtype='int'))
-# anim.save('qs_barplot.gif', writer='imagemagick', fps=20)
-#
-# HTML(anim.to_jshtml())
-#
-# # Check for nans in net parameters
-# is_ok = True
-# for param_tensor in policy_net.state_dict():
-#     if torch.isnan(policy_net.state_dict()[param_tensor]).sum() > 0:
-#         print("Error: nan in network parameters")
-#         is_ok = False
-#         break
-# if is_ok:
-#     print("No nans in net parameters.")
-#
-# # Evaluate your agent
-# policy_net.eval()
-# is_training = False
-#
-# def mean_reward(rewards):
-#     return sum(r[0] for r in rewards) / sum(r[0] + r[1] for r in rewards)
-#
-# # Run multiple episodes to estimate its performance.
-# print("My Agent vs Random Agent:", mean_reward(evaluate("connectx", [policy_net_agent, "random"], num_episodes=50)))
-# print("Random Agent vs My Agent:", mean_reward(evaluate("connectx", ["random", policy_net_agent], num_episodes=50)))
-# print("My Agent vs Negamax Agent:", mean_reward(evaluate("connectx", [policy_net_agent, "negamax"], num_episodes=5)))
-# print("Negamax Agent vs My Agent:", mean_reward(evaluate("connectx", ["negamax", policy_net_agent], num_episodes=5)))
-#
-# # Play your Agent
-# # "None" represents which agent you'll manually play as (first or second player).
-# env.play([policy_net_agent, None], width=500, height=450)
-#
-#
-#
-# # Create agent function
-# def agent_function(observation, configuration):
-#     import torch
-#     import torch.nn as nn
-#     import torch.nn.functional as F
-#     import numpy as np
-#     import random
-#     import math
-#     import base64
-#     import io
-#     import time
-#
-#     class Qnet(nn.Module):
-#         def __init__(self, configuration):
-#             super(Qnet, self).__init__()
-#             self.columns = configuration.columns
-#             self.rows = configuration.rows
-#             # Number of Checkers "in a row" needed to win.
-#             self.inarow = configuration.inarow
-#             input_shape = (3, self.rows, self.columns)
-#
-#             self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1)
-#             self.relu1 = nn.ReLU()
-#             #         self.do1 = nn.Dropout2d()
-#             self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-#             self.relu2 = nn.ReLU()
-#             #         self.do2 = nn.Dropout2d()
-#             #         def conv2d_size_out(size, kernel_size = 3, stride = 1):
-#             #             return (size - (kernel_size - 1) - 1) // stride  + 1
-#             #         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.columns)))
-#             #         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.rows)))
-#             #         linear_input_size = convw * convh * 32
-#             linear_input_size = self._get_conv_output(input_shape)
-#             self.lin1 = nn.Linear(linear_input_size, 64)
-#             self.relu_lin1 = nn.ReLU()
-#             self.Q_o = nn.Linear(64, self.columns)
-#
-#         #         self.tanh = nn.Tanh()  # BUGGY
-#
-#         def _get_conv_output(self, shape):
-#             bs = 1
-#             input = torch.autograd.Variable(torch.rand(bs, *shape))
-#             output_feat = self._forward_features(input)
-#             n_size = output_feat.data.view(bs, -1).size(1)
-#             return n_size
-#
-#         def _forward_features(self, x):
-#             #         x = F.relu(self.do1(self.conv1(x)))
-#             #         x = F.relu(self.do2(self.conv2(x)))
-#             x = self.relu1(self.conv1(x))
-#             x = self.relu2(self.conv2(x))
-#             return x
-#
-#         def forward(self, x):
-#             x = self._forward_features(x)
-#             x = self.relu_lin1(self.lin1(x.view(x.size(0), -1)))
-#             Q = self.Q_o(x)
-#             #         Q = self.tanh(Q)  # BUGGY
-#             return Q
-#
-#     def form_net_input(observation, configuration):
-#         # The current serialized Board (rows x columns).
-#         board = observation.board
-#         # Which player the agent is playing as (1 or 2).
-#         mark = observation.mark
-#         columns = configuration.columns
-#         rows = configuration.rows
-#         opponent = 2 if mark == 1 else 1
-#         newboard = [1 if i == mark else 2 if i == opponent else 0 for i in board]
-#         #         x = torch.Tensor(newboard).view([1,1, rows, columns])
-#         newboard = torch.tensor(newboard).reshape([rows, columns])
-#         x = F.one_hot(newboard, 3).permute([2, 0, 1])
-#         x = x.view([1, 3, rows, columns]).float()
-#         return x.to(device)
-#
-#     def choose_action(observation, configuration, net):
-#         Qs = net(form_net_input(observation, configuration)).cpu().detach().numpy().flatten()
-#         return int(np.argmax([q_col if observation.board[col] == 0 else -np.inf for (col, q_col) in enumerate(Qs)]))
-#
-#     device = torch.device('cpu')
-#     policy_net = Qnet(configuration)
-#     encoded_weights = """
-#     BASE64_PARAMS"""
-#     decoded = base64.b64decode(encoded_weights)
-#     buffer = io.BytesIO(decoded)
-#     policy_net.load_state_dict(torch.load(buffer, map_location=device))
-#     policy_net.eval()
-#     return choose_action(observation, configuration, policy_net)
-#
-# # Write Submission File
-# import inspect
-# import os
-#
-# no_params_path = "submission_template.py"
-#
-#
-# def append_object_to_file(function, file):
-#     with open(file, "a" if os.path.exists(file) else "w") as f:
-#         f.write(inspect.getsource(function))
-#         print(function, "written to", file)
-#
-#
-# def write_agent_to_file(function, file):
-#     with open(file, "w") as f:
-#         f.write(inspect.getsource(function))
-#         print(function, "written to", file)
-#
-#
-# write_agent_to_file(agent_function, no_params_path)
-#
-# # Write net parameters to submission file
-#
-# import base64
-# import sys
-#
-# dict_path = "net_params.pth"
-# torch.save(policy_net.state_dict(), dict_path)
-#
-# INPUT_PATH = dict_path
-# OUTPUT_PATH = 'submission.py'
-#
-# with open(INPUT_PATH, 'rb') as f:
-#     raw_bytes = f.read()
-#     encoded_weights = base64.encodebytes(raw_bytes).decode()
-#
-# with open(no_params_path, 'r') as file:
-#     data = file.read()
-#
-# data = data.replace('BASE64_PARAMS', encoded_weights)
-#
-# with open(OUTPUT_PATH, 'w') as f:
-#     f.write(data)
-#     print('written agent with net parameters to', OUTPUT_PATH)
-#
-# # Validate Submission
-# # Note: Stdout replacement is a temporary workaround.
-# import sys
-# out = sys.stdout
-# try:
-#     submission = utils.read_file("/kaggle/working/submission.py")
-#     agent = utils.get_last_callable(submission)
-# finally:
-#     sys.stdout = out
-#
-# env = make("connectx", debug=True)
-# env.run([agent, agent])
-# print("Success!" if env.state[0].status == env.state[1].status == "DONE" else "Failed...")
+fig = plt.figure(figsize=(16,8))
+ax = fig.add_subplot(121)
+ax.plot(eps_list)
+ax.grid()
+ax.set_xlabel("episode")
+ax.set_ylabel("eps")
+ax.set_title("eps decay")
+
+
+ax2 = fig.add_subplot(122)
+ax2.plot(training_loss_per_episode)
+ax2.grid()
+ax2.set_xlabel("training episode")
+ax2.set_ylabel("loss")
+ax2.set_title("loss")
+
+first_move_qs_arr = np.array(first_move_qs_arr)
+
+fig2 = plt.figure(figsize=(16,8))
+ax3 = fig2.add_subplot(121)
+ax3.plot(first_move_qs_arr[:,mid_action])
+ax3.grid()
+ax3.axhline(color='red')
+ax3.set_xlabel("training episode")
+ax3.set_ylabel("q-value")
+ax3.set_title("Q-value of middle action on first move")
+
+ax4 = fig2.add_subplot(122)
+ax4.plot(first_move_qs_arr[:,mid_action] - np.concatenate([first_move_qs_arr[:, :mid_action], first_move_qs_arr[:, mid_action+1:]], axis=1).max(axis=1))
+ax4.grid()
+ax4.axhline(color='red')
+ax4.set_xlabel("training episode")
+ax4.set_ylabel("q-value difference")
+ax4.set_title("First move Q-value difference between mid action and max non-mid action ")
+
+
+bar_fig, ax5 = plt.subplots(figsize = (10,8))
+
+
+def update_qs_barplot(i):
+    title = "Q-values of first move after {} training sessions".format(i)
+    ax5.clear()
+    ax5.bar(np.arange(columns), first_move_qs_arr[i])
+    ax5.set_ylim(-0.5, 0.8)
+    ax5.grid()
+    ax5.axhline(color='red')
+    ax5.set_xlabel("action")
+    ax5.set_ylabel("Q-value")
+    ax5.set_title(title)
+
+anim = FuncAnimation(bar_fig, update_qs_barplot, frames=np.linspace(0, len(first_move_qs_arr)-1, 100, dtype='int'))
+anim.save('qs_barplot.gif', writer='imagemagick', fps=20)
+
+HTML(anim.to_jshtml())
+
+# Check for nans in net parameters
+is_ok = True
+for param_tensor in policy_net.state_dict():
+    if torch.isnan(policy_net.state_dict()[param_tensor]).sum() > 0:
+        print("Error: nan in network parameters")
+        is_ok = False
+        break
+if is_ok:
+    print("No nans in net parameters.")
+
+# Evaluate your agent
+policy_net.eval()
+is_training = False
+
+def mean_reward(rewards):
+    return sum(r[0] for r in rewards) / sum(r[0] + r[1] for r in rewards)
+
+# Run multiple episodes to estimate its performance.
+print("My Agent vs Random Agent:", mean_reward(evaluate("connectx", [policy_net_agent, "random"], num_episodes=50)))
+print("Random Agent vs My Agent:", mean_reward(evaluate("connectx", ["random", policy_net_agent], num_episodes=50)))
+print("My Agent vs Negamax Agent:", mean_reward(evaluate("connectx", [policy_net_agent, "negamax"], num_episodes=5)))
+print("Negamax Agent vs My Agent:", mean_reward(evaluate("connectx", ["negamax", policy_net_agent], num_episodes=5)))
+
+# Play your Agent
+# "None" represents which agent you'll manually play as (first or second player).
+env.play([policy_net_agent, None], width=500, height=450)
+
+
+
+# Create agent function
+def agent_function(observation, configuration):
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    import numpy as np
+    import random
+    import math
+    import base64
+    import io
+    import time
+
+    class Qnet(nn.Module):
+        def __init__(self, configuration):
+            super(Qnet, self).__init__()
+            self.columns = configuration.columns
+            self.rows = configuration.rows
+            # Number of Checkers "in a row" needed to win.
+            self.inarow = configuration.inarow
+            input_shape = (3, self.rows, self.columns)
+
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1)
+            self.relu1 = nn.ReLU()
+            #         self.do1 = nn.Dropout2d()
+            self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+            self.relu2 = nn.ReLU()
+            #         self.do2 = nn.Dropout2d()
+            #         def conv2d_size_out(size, kernel_size = 3, stride = 1):
+            #             return (size - (kernel_size - 1) - 1) // stride  + 1
+            #         convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.columns)))
+            #         convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(self.rows)))
+            #         linear_input_size = convw * convh * 32
+            linear_input_size = self._get_conv_output(input_shape)
+            self.lin1 = nn.Linear(linear_input_size, 64)
+            self.relu_lin1 = nn.ReLU()
+            self.Q_o = nn.Linear(64, self.columns)
+
+        #         self.tanh = nn.Tanh()  # BUGGY
+
+        def _get_conv_output(self, shape):
+            bs = 1
+            input = torch.autograd.Variable(torch.rand(bs, *shape))
+            output_feat = self._forward_features(input)
+            n_size = output_feat.data.view(bs, -1).size(1)
+            return n_size
+
+        def _forward_features(self, x):
+            #         x = F.relu(self.do1(self.conv1(x)))
+            #         x = F.relu(self.do2(self.conv2(x)))
+            x = self.relu1(self.conv1(x))
+            x = self.relu2(self.conv2(x))
+            return x
+
+        def forward(self, x):
+            x = self._forward_features(x)
+            x = self.relu_lin1(self.lin1(x.view(x.size(0), -1)))
+            Q = self.Q_o(x)
+            #         Q = self.tanh(Q)  # BUGGY
+            return Q
+
+    def form_net_input(observation, configuration):
+        # The current serialized Board (rows x columns).
+        board = observation.board
+        # Which player the agent is playing as (1 or 2).
+        mark = observation.mark
+        columns = configuration.columns
+        rows = configuration.rows
+        opponent = 2 if mark == 1 else 1
+        newboard = [1 if i == mark else 2 if i == opponent else 0 for i in board]
+        #         x = torch.Tensor(newboard).view([1,1, rows, columns])
+        newboard = torch.tensor(newboard).reshape([rows, columns])
+        x = F.one_hot(newboard, 3).permute([2, 0, 1])
+        x = x.view([1, 3, rows, columns]).float()
+        return x.to(device)
+
+    def choose_action(observation, configuration, net):
+        Qs = net(form_net_input(observation, configuration)).cpu().detach().numpy().flatten()
+        return int(np.argmax([q_col if observation.board[col] == 0 else -np.inf for (col, q_col) in enumerate(Qs)]))
+
+    device = torch.device('cpu')
+    policy_net = Qnet(configuration)
+    encoded_weights = """
+    BASE64_PARAMS"""
+    decoded = base64.b64decode(encoded_weights)
+    buffer = io.BytesIO(decoded)
+    policy_net.load_state_dict(torch.load(buffer, map_location=device))
+    policy_net.eval()
+    return choose_action(observation, configuration, policy_net)
+
+# Write Submission File
+import inspect
+import os
+
+no_params_path = "submission_template.py"
+
+
+def append_object_to_file(function, file):
+    with open(file, "a" if os.path.exists(file) else "w") as f:
+        f.write(inspect.getsource(function))
+        print(function, "written to", file)
+
+
+def write_agent_to_file(function, file):
+    with open(file, "w") as f:
+        f.write(inspect.getsource(function))
+        print(function, "written to", file)
+
+
+write_agent_to_file(agent_function, no_params_path)
+
+# Write net parameters to submission file
+
+import base64
+import sys
+
+dict_path = "net_params.pth"
+torch.save(policy_net.state_dict(), dict_path)
+
+INPUT_PATH = dict_path
+OUTPUT_PATH = 'submission.py'
+
+with open(INPUT_PATH, 'rb') as f:
+    raw_bytes = f.read()
+    encoded_weights = base64.encodebytes(raw_bytes).decode()
+
+with open(no_params_path, 'r') as file:
+    data = file.read()
+
+data = data.replace('BASE64_PARAMS', encoded_weights)
+
+with open(OUTPUT_PATH, 'w') as f:
+    f.write(data)
+    print('written agent with net parameters to', OUTPUT_PATH)
+
+# Validate Submission
+# Note: Stdout replacement is a temporary workaround.
+import sys
+out = sys.stdout
+try:
+    submission = utils.read_file("/kaggle/working/submission.py")
+    agent = utils.get_last_callable(submission)
+finally:
+    sys.stdout = out
+
+env = make("connectx", debug=True)
+env.run([agent, agent])
+print("Success!" if env.state[0].status == env.state[1].status == "DONE" else "Failed...")

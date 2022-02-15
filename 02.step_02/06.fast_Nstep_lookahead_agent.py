@@ -1,4 +1,4 @@
-# fast_4step_lookahead_agent.py
+# fast_3step_lookahead_agent.py
 # Importing Dependencies
 import random  # connect the library for working with random numbers
 import numpy as np  # connect the library general mathematical and numerical operations
@@ -167,7 +167,7 @@ def count_windows_optimised(grid, piece, config, row, col):
     return num_windows
 
 # How deep to make the game tree: higher values take longer to run!
-N_STEPS = 4
+N_STEPS = 3
 # main function of our agent
 def agent(obs, config):
     grid = np.asarray(obs.board).reshape(config.rows, config.columns)  # Convert the board to a 2D grid
