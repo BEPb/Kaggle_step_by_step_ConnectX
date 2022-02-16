@@ -6,9 +6,6 @@ import os  # connect the library operating system
 import gym  # toolkit for developing and comparing reinforcement learning algorithms
 from tqdm import tqdm  # connect the library show a smart progress
 
-
-# with open("../02.step_02/06.fast_Nstep_lookahead_agent.py","r") as saved_agent:
-#     print(saved_agent.read())
 saved_agent = '../02.step_02/06.fast_Nstep_lookahead_agent.py'
 print(saved_agent)
 
