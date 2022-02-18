@@ -49,7 +49,7 @@ gamma = 0.6
 epsilon = 0.99
 min_epsilon = 0.1
 
-episodes = 1000  # 15000
+episodes = 1  # 15000
 alpha_decay_step = 1000
 alpha_decay_rate = 0.9
 epsilon_decay_rate = 0.9999
@@ -72,7 +72,7 @@ class CustomThread(Thread):
         Thread.__init__(self)
         self._limit = limit
     def run(self, alpha=0.1, epsilon = 0.99):
-        for i in range(self._limit):
+        for b in range(self._limit):
             for i in tqdm(range(episodes)):
                 state = trainer.reset()
                 epsilon = max(min_epsilon, epsilon * epsilon_decay_rate)
@@ -132,6 +132,22 @@ class CustomThread(Thread):
             
 cth = CustomThread(5)
 cth.start()
+cth.join()
+
+
+# for i in range(5):
+#     thread = threading.Thread(
+#         target=write_genre,
+#         args=[f"./threading/new_file{i}.txt"]
+#     )
+#     thread.start()
+# threads = []
+# threads.append(thread)
+#
+# for thread in threads:
+#     thread.join()
+
+
 
 ############################################################
 

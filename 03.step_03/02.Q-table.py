@@ -6,7 +6,9 @@ import os  # connect the library operating system
 import gym  # toolkit for developing and comparing reinforcement learning algorithms
 from tqdm import tqdm  # connect the library show a smart progress
 
-saved_agent = '../02.step_02/06.fast_Nstep_lookahead_agent.py'
+# saved_agent = '../02.step_02/06.fast_Nstep_lookahead_agent.py'
+# saved_agent = "../02.step_02/06.fast_Nstep_lookahead_agent.py"
+saved_agent = "best_model_x.py"
 print(saved_agent)
 
 env = make("connectx")
@@ -167,6 +169,7 @@ print(len(q_table.table))
 print("%s Kb" % round(os.stat('submission.py').st_size/1024))
 
 # episode   # len(q_table.table)    #  time   # Memory
+#   1       #        10             #   03s   #  1kb
 #   10      #        63             #   24s   #  1kb
-#  100      #       727             #   4:39  #  10kb
-#  1000     #       5854            #   49:16 #  78kb
+#   100     #       727             #   4:39  #  10kb
+#   1000    #       5854            #   49:16 #  78kb
